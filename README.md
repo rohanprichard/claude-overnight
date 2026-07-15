@@ -32,10 +32,10 @@ overnight install                  # sets up the scheduler + /queue slash comman
 
 `overnight install` does two things:
 
-1. Registers a **launchd agent** that wakes every 30 minutes, checks whether you're inside the night window and under the limit thresholds, and runs the queue if so.
+1. Registers a **scheduler** — a launchd agent on macOS, a systemd user timer on Linux — that wakes every 30 minutes, checks whether you're inside the night window and under the limit thresholds, and runs the queue if so.
 2. Drops a **`/queue` slash command** into `~/.claude/commands/`, so you can queue questions without leaving Claude Code.
 
-Requires macOS, Python 3.11+, and the [Claude Code](https://code.claude.com) CLI with a Pro/Max subscription.
+Requires macOS or Linux, Python 3.11+, and the [Claude Code](https://code.claude.com) CLI with a Pro/Max subscription. Also installable as a Claude Code plugin (`/plugin marketplace add rohanprichard/claude-overnight`) or an agent skill (`npx skills add rohanprichard/claude-overnight`).
 
 ## Use
 
@@ -83,7 +83,7 @@ Full details in [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Edge cases handled
 
-- **Mac asleep at 3am** — launchd runs the missed tick on wake, so the batch runs when you open the lid, still before you start working.
+- **Machine asleep at 3am** — launchd (and systemd with `Persistent=true`) runs the missed tick on wake, so the batch runs when you open the lid, still before you start working.
 - **One job eating the whole window** — per-job timeouts plus utilization re-checks between jobs.
 - **Two runners racing** — lockfile with stale-lock recovery.
 - **Headless Claude wanting to ask you something** — the prompt template instructs it to make reasonable assumptions and state them.
@@ -92,7 +92,7 @@ Full details in [docs/how-it-works.md](docs/how-it-works.md).
 ## Uninstall
 
 ```sh
-overnight uninstall            # removes the launchd agent + slash command
+overnight uninstall            # removes the scheduler + slash command
 uv tool uninstall claude-overnight
 rm -rf ~/.overnight            # queue, results, config
 ```
@@ -100,8 +100,8 @@ rm -rf ~/.overnight            # queue, results, config
 ## Roadmap
 
 - Repo-scoped coding jobs (run in a git worktree, results as branches)
-- Linux (systemd timer) support
 - "Quota saved this week" stats in `overnight status`
+- Pluggable backends: the queue, scheduler, and threshold logic are agent-agnostic — only the `claude -p` invocation and the limits reader are Claude-specific. Codex (`codex exec`) and Cursor CLI backends are on the table if there's demand.
 
 ## License
 

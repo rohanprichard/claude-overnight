@@ -87,18 +87,18 @@ def cmd_run(args) -> int:
 def cmd_install(args) -> int:
     paths.ensure_dirs()
     config.load()  # writes default config on first run
-    plist = install.install_launchd()
+    plist = install.install_scheduler()
     cmd = install.install_slash_command()
-    print(f"Installed launchd agent: {plist}")
+    print(f"Installed scheduler: {plist}")
     print(f"Installed slash command: {cmd}  (use /queue inside Claude Code)")
     print(f"Config: {paths.config_path()}")
     return 0
 
 
 def cmd_uninstall(args) -> int:
-    install.uninstall_launchd()
+    install.uninstall_scheduler()
     install.uninstall_slash_command()
-    print("Removed launchd agent and slash command. Queue and results kept in "
+    print("Removed scheduler and slash command. Queue and results kept in "
           f"{paths.base_dir()}")
     return 0
 

@@ -54,4 +54,5 @@ If usage can't be read at all (expired token, endpoint changed), the runner proc
 | `~/.overnight/results/<date>/` | Markdown reports |
 | `~/.overnight/results/index.md` | Rolling digest, newest batch last |
 | `~/.overnight/logs/` | launchd runner stdout/stderr |
-| `~/Library/LaunchAgents/com.claude-overnight.runner.plist` | The scheduler |
+| `~/Library/LaunchAgents/com.claude-overnight.runner.plist` | The scheduler (macOS) |
+| `~/.config/systemd/user/claude-overnight.{service,timer}` | The scheduler (Linux) |
