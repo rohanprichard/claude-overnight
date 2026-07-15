@@ -49,8 +49,8 @@ def cmd_status(args) -> int:
     if usage is None:
         print("Limits: unavailable (no token or endpoint unreachable) — runner will try optimistically")
     else:
-        print(f"Limits: 5h {_fmt_pct(usage.five_hour_pct)} (resets {usage.five_hour_resets_at or '?'})  "
-              f"weekly {_fmt_pct(usage.seven_day_pct)} (resets {usage.seven_day_resets_at or '?'})")
+        print(f"Limits: 5h {_fmt_pct(usage.five_hour_pct)} (resets {_fmt_reset(usage.five_hour_resets_at)})  "
+              f"weekly {_fmt_pct(usage.seven_day_pct)} (resets {_fmt_reset(usage.seven_day_resets_at)})")
     pending = store.list_jobs(store.PENDING)
     done = store.list_jobs(store.DONE)
     failed = store.list_jobs(store.FAILED)
@@ -63,6 +63,18 @@ def cmd_status(args) -> int:
 
 def _fmt_pct(value) -> str:
     return f"{value:.0f}%" if value is not None else "?"
+
+
+def _fmt_reset(value: str | None) -> str:
+    if not value:
+        return "?"
+    try:
+        dt = datetime.fromisoformat(value).astimezone()
+    except ValueError:
+        return value
+    if dt.date() == datetime.now().astimezone().date():
+        return dt.strftime("%H:%M")
+    return dt.strftime("%a %H:%M")
 
 
 def cmd_run(args) -> int:

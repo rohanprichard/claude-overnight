@@ -2,6 +2,8 @@
 
 **Queue research questions all day. Wake up to answers.**
 
+![demo](assets/demo.gif)
+
 Your Claude Code weekly limit quietly expires while you sleep — if you hit the 5-hour cap every day, you still leave weekly quota on the table every single night. `claude-overnight` puts that idle quota to work: queue questions with `/queue` during the day, and a scheduler runs them headlessly inside your configured night window, when your limits have reset. You wake up to a folder of markdown research reports and a morning digest.
 
 ```
