@@ -10,6 +10,11 @@ def test_systemd_units_reference_runner_and_logs():
     assert "Persistent=true" in timer
 
 
+def test_systemd_service_bakes_path():
+    service, _ = install.systemd_units()
+    assert "Environment=PATH=" in service
+
+
 def test_runner_command_is_nonempty():
     cmd = install._runner_command()
     assert cmd[-1] == "run"

@@ -39,6 +39,20 @@ def cmd_remove(args) -> int:
     return 1
 
 
+def cmd_retry(args) -> int:
+    failed = store.list_jobs(store.FAILED)
+    if not failed:
+        print("No failed jobs.")
+        return 0
+    for job in failed:
+        job.attempts = 0
+        job.error = None
+        job.status = store.PENDING
+        store.save(job)
+        print(f"Requeued [{job.id}]: {job.prompt[:80]}")
+    return 0
+
+
 def cmd_status(args) -> int:
     cfg = config.load()
     usage = limits.fetch_usage()
@@ -129,6 +143,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("remove", help="remove a job by id")
     p.add_argument("id")
     p.set_defaults(func=cmd_remove)
+
+    p = sub.add_parser("retry", help="requeue all failed jobs")
+    p.set_defaults(func=cmd_retry)
 
     p = sub.add_parser("status", help="show limits, queue and whether a batch would run")
     p.set_defaults(func=cmd_status)

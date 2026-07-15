@@ -1,6 +1,7 @@
 """Install/uninstall the scheduler (launchd on macOS, systemd user timer on
 Linux) and the /queue slash command."""
 
+import os
 import plistlib
 import shutil
 import subprocess
@@ -22,6 +23,12 @@ allowed-tools: Bash(overnight add:*)
 Run `overnight add "$ARGUMENTS"` and confirm to the user that the question
 was queued, mentioning it will run in the next overnight window.
 """
+
+
+def _scheduler_path() -> str:
+    # Schedulers run with a minimal PATH; capture the user's real one at
+    # install time so the runner can find `claude`.
+    return os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")
 
 
 def _runner_command() -> list[str]:
@@ -56,6 +63,7 @@ def install_launchd() -> Path:
         "ProgramArguments": _runner_command(),
         "StartInterval": TICK_MINUTES * 60,
         "RunAtLoad": False,
+        "EnvironmentVariables": {"PATH": _scheduler_path()},
         "StandardOutPath": str(paths.logs_dir() / "runner.log"),
         "StandardErrorPath": str(paths.logs_dir() / "runner.err.log"),
     }
@@ -90,6 +98,7 @@ def systemd_units() -> tuple[str, str]:
         "Description=claude-overnight queue runner\n\n"
         "[Service]\n"
         "Type=oneshot\n"
+        f"Environment=PATH={_scheduler_path()}\n"
         f"ExecStart={exec_line}\n"
         f"StandardOutput=append:{paths.logs_dir() / 'runner.log'}\n"
         f"StandardError=append:{paths.logs_dir() / 'runner.err.log'}\n"

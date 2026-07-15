@@ -1,5 +1,7 @@
 import json
 import subprocess
+
+import pytest
 from datetime import datetime, time
 from types import SimpleNamespace
 
@@ -54,6 +56,11 @@ class TestShouldContinue:
         assert not runner.should_continue(cfg(), usage(), DAY).run
 
 
+@pytest.fixture(autouse=True)
+def claude_on_path(monkeypatch):
+    monkeypatch.setattr(runner, "claude_path", lambda: "/fake/bin/claude")
+
+
 def fake_claude(result: str, is_error: bool = False, returncode: int = 0):
     payload = json.dumps({"result": result, "is_error": is_error})
     def run(cmd, **kwargs):
@@ -92,12 +99,11 @@ class TestRunJob:
         assert "timed out" in job.error
 
     def test_missing_cli_marks_failed(self, monkeypatch):
-        def missing(cmd, **kwargs):
-            raise FileNotFoundError()
-        monkeypatch.setattr(subprocess, "run", missing)
+        monkeypatch.setattr(runner, "claude_path", lambda: None)
         job = runner.run_job(store.add("q"), cfg())
         assert job.status == store.FAILED
         assert "not found" in job.error
+        assert job.attempts == 0  # never started, retryable after fix
 
 
 class TestRunBatch:

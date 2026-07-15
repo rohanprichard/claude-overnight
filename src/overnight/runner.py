@@ -3,6 +3,7 @@ writes markdown reports and a rolling index."""
 
 import json
 import os
+import shutil
 import subprocess
 import time as time_mod
 from dataclasses import dataclass
@@ -86,11 +87,33 @@ def _is_limit_error(text: str) -> bool:
     return any(marker in lower for marker in LIMIT_ERROR_MARKERS)
 
 
+def claude_path() -> str | None:
+    """Find the claude binary. Schedulers run with a minimal PATH, so
+    checking PATH alone is not enough."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    home = os.path.expanduser("~")
+    candidates = [
+        f"{home}/.local/bin/claude",
+        f"{home}/.claude/local/claude",
+        "/opt/homebrew/bin/claude",
+        "/usr/local/bin/claude",
+    ]
+    for path in candidates:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return None
+
+
 def run_job(job: store.Job, cfg: Config) -> store.Job:
     """Run one job through `claude -p`. Returns the updated job."""
+    claude = claude_path()
+    if not claude:
+        return store.mark(job, store.FAILED, error="`claude` CLI not found on PATH")
     store.mark(job, store.RUNNING)
     cmd = [
-        "claude", "-p", PROMPT_TEMPLATE.format(prompt=job.prompt),
+        claude, "-p", PROMPT_TEMPLATE.format(prompt=job.prompt),
         "--output-format", "json",
         "--model", cfg.model,
         "--allowedTools", "WebSearch,WebFetch",
