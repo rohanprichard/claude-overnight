@@ -1,0 +1,37 @@
+[project]
+name = "claude-overnight"
+version = "0.1.0"
+description = "Queue research questions all day. Wake up to answers. Puts your idle Claude Code quota to work while you sleep."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Rohan Richard" }]
+keywords = ["claude", "claude-code", "queue", "rate-limits", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/rohanprichard/claude-overnight"
+Issues = "https://github.com/rohanprichard/claude-overnight/issues"
+
+[project.scripts]
+overnight = "overnight.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/overnight"]
+
+[dependency-groups]
+dev = ["pytest>=8"]

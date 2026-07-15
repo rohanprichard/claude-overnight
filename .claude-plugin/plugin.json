@@ -1,0 +1,9 @@
+{
+  "name": "claude-overnight",
+  "version": "0.1.0",
+  "description": "Queue research questions with /queue; they run when your usage limits reset overnight. Requires the claude-overnight CLI (uv tool install claude-overnight).",
+  "author": { "name": "Rohan Richard" },
+  "homepage": "https://github.com/rohanprichard/claude-overnight",
+  "license": "MIT",
+  "keywords": ["queue", "rate-limits", "overnight", "research"]
+}
