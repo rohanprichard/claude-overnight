@@ -42,7 +42,8 @@ If usage can't be read at all (expired token, endpoint changed), the runner proc
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `model` | `sonnet` | Passed to `claude --model`. Use `haiku` to stretch quota further, `opus` for depth. |
-| `job_timeout_minutes` | `15` | Hard kill per job. |
+| `job_timeout_minutes` | `15` | Hard kill per research job. |
+| `repo_job_timeout_minutes` | `45` | Hard kill per coding job (needs time to build/test). |
 | `max_attempts` | `2` | Failed/limit-hit jobs are retried on later ticks up to this many times. |
 | `extra_args` | `[]` | Extra flags appended to the `claude -p` invocation, e.g. `["--fallback-model", "haiku"]`. |
 
@@ -53,6 +54,8 @@ If usage can't be read at all (expired token, endpoint changed), the runner proc
 | `~/.overnight/queue/` | One JSON file per job |
 | `~/.overnight/results/<date>/` | Markdown reports |
 | `~/.overnight/results/index.md` | Rolling digest, newest batch last |
-| `~/.overnight/logs/` | launchd runner stdout/stderr |
+| `~/.overnight/logs/` | scheduler runner stdout/stderr |
+| `~/.overnight/trusted_repos` | Repos blessed for coding jobs |
+| `~/.overnight/worktrees/` | Transient worktrees during coding jobs |
 | `~/Library/LaunchAgents/com.claude-overnight.runner.plist` | The scheduler (macOS) |
 | `~/.config/systemd/user/claude-overnight.{service,timer}` | The scheduler (Linux) |

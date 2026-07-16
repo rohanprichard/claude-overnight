@@ -46,10 +46,36 @@ overnight add "how do sqlite WAL checkpoints actually work?"
 # or inside any Claude Code session
 /queue how do sqlite WAL checkpoints actually work?
 
-overnight list        # see the queue
-overnight status      # current 5h/weekly utilization + would-it-run-now
-overnight run --force # run the batch right now, ignoring window/limits
+overnight list          # see the queue
+overnight status        # current 5h/weekly utilization + would-it-run-now
+overnight results       # read the digest (or one report: overnight results <id>)
+overnight run --dry-run # explain exactly what would happen and why
+overnight run --force   # run the batch right now, ignoring window/limits
+overnight retry         # requeue failed jobs
 ```
+
+Per-job flags: `--model opus` to override the model, `--first` to jump the queue.
+
+## Overnight coding jobs
+
+Beyond research questions, you can queue actual work against a repo:
+
+```sh
+overnight trust ~/code/myapp              # one-time, per repo
+overnight add --repo ~/code/myapp "add a dark mode toggle to settings; follow the existing theme pattern and run the tests"
+```
+
+Or from a Claude Code session inside the repo, just `/queue add a dark mode toggle...` — the command detects it's a coding task and captures the repo automatically.
+
+Overnight, the job runs in a **fresh git worktree on a dedicated branch** — your working tree, uncommitted changes, and checked-out branch are never touched. In the morning:
+
+```
+git diff main..overnight/add-a-dark-mode-toggle-3f9c2a   # love it or delete it
+```
+
+The agent commits its work (WIP-prefixed if it got stuck), writes a `SUMMARY.md`, and the digest shows the branch plus a diffstat. Branches with no changes are dropped automatically.
+
+**Safety model:** coding jobs run with `acceptEdits` (they need to edit files and run your tests), so they only run against repos you've explicitly blessed with `overnight trust`. The worktree fences file changes, but a job can execute shell commands — trust repos accordingly. Research jobs remain locked to web-search tools.
 
 Results land in `~/.overnight/results/<date>/`, one markdown report per question, with a rolling `index.md` digest. A macOS notification fires when the batch finishes.
 
@@ -69,7 +95,8 @@ weekly_max_utilization = 80  # never run if the weekly limit is >80% used
 
 [run]
 model = "sonnet"
-job_timeout_minutes = 15
+job_timeout_minutes = 15       # research jobs
+repo_job_timeout_minutes = 45  # coding jobs get time to build and test
 max_attempts = 2
 ```
 
@@ -99,8 +126,9 @@ rm -rf ~/.overnight            # queue, results, config
 
 ## Roadmap
 
-- Repo-scoped coding jobs (run in a git worktree, results as branches)
+- Follow-up jobs: `overnight followup <id> "go deeper on X"` reusing the report as context
 - "Quota saved this week" stats in `overnight status`
+- Digest delivery to Telegram/ntfy/email
 - Pluggable backends: the queue, scheduler, and threshold logic are agent-agnostic — only the `claude -p` invocation and the limits reader are Claude-specific. Codex (`codex exec`) and Cursor CLI backends are on the table if there's demand.
 
 ## License

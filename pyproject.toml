@@ -1,6 +1,6 @@
 [project]
 name = "claude-overnight"
-version = "0.2.1"
+version = "0.3.0"
 description = "Queue research questions all day. Wake up to answers. Puts your idle Claude Code quota to work while you sleep."
 readme = "README.md"
 requires-python = ">=3.11"

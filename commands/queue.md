@@ -1,12 +1,15 @@
 ---
-description: Queue a question for claude-overnight to research when your limits reset
-allowed-tools: Bash(overnight add:*), Bash(overnight status:*)
+description: Queue a question or coding task for claude-overnight to run when your limits reset
+allowed-tools: Bash(overnight add:*), Bash(overnight trust:*)
 ---
 
-Queue the user's question for overnight research.
+Queue the user's request for the overnight batch:
 
-1. Run `overnight add "$ARGUMENTS"`.
-2. If the command is not found, tell the user to install the CLI first:
-   `uv tool install claude-overnight && overnight install`.
-3. On success, confirm the question was queued and mention it will run in
-   the next overnight window (they can check with `overnight status`).
+- If it is a research question, run `overnight add "$ARGUMENTS"`.
+- If it is a coding task for the current project (implement/fix/refactor
+  something here), run `overnight add --repo "$(pwd)" "$ARGUMENTS"`.
+  If the output warns the repo is not trusted, ask the user whether to trust
+  it, and on yes run `overnight trust "$(pwd)"`.
+
+Then confirm it was queued and mention it will run in the next overnight
+window (coding jobs land on an `overnight/*` branch to review in the morning).

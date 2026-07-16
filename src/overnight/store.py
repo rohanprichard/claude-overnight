@@ -26,6 +26,9 @@ class Job:
     result_path: str | None = None
     started_at: str | None = None
     finished_at: str | None = None
+    repo: str | None = None
+    model: str | None = None
+    priority: int = 0
     extra: dict = field(default_factory=dict)
 
 
@@ -47,9 +50,11 @@ def save(job: Job) -> None:
     _job_path(job.id).write_text(json.dumps(asdict(job), indent=2))
 
 
-def add(prompt: str) -> Job:
+def add(prompt: str, repo: str | None = None, model: str | None = None,
+        first: bool = False) -> Job:
     job_id = datetime.now().strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(3)
-    job = Job(id=job_id, prompt=prompt.strip(), created_at=_now_iso())
+    job = Job(id=job_id, prompt=prompt.strip(), created_at=_now_iso(),
+              repo=repo, model=model, priority=1 if first else 0)
     save(job)
     return job
 
@@ -79,6 +84,7 @@ def list_jobs(status: str | None = None) -> list[Job]:
             continue
     if status:
         jobs = [j for j in jobs if j.status == status]
+    jobs.sort(key=lambda j: (-j.priority, j.id))
     return jobs
 
 

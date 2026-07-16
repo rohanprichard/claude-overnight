@@ -18,6 +18,18 @@ overnight add "the user's question, phrased as a self-contained research prompt"
 Rephrase the question so it stands alone — the overnight run has no
 conversation context. Include any constraints the user mentioned.
 
+## Queue a coding task for the current repo
+
+```sh
+overnight add --repo "$(pwd)" "implement X following the existing Y pattern; run the tests"
+```
+
+The job runs overnight in a fresh git worktree and lands on an
+`overnight/*` branch for morning review — it never touches the working
+tree. The repo must be trusted first; if the add command warns about
+trust, ask the user before running `overnight trust "$(pwd)"`.
+Useful flags: `--model opus` for hard tasks, `--first` to prioritize.
+
 After queueing, confirm to the user and mention the report will be in
 `~/.overnight/results/` after the next overnight window.
 

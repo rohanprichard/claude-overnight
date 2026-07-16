@@ -27,6 +27,8 @@ weekly_max_utilization = 80
 [run]
 model = "sonnet"
 job_timeout_minutes = 15
+# Coding jobs against a trusted repo get longer to build and run tests.
+repo_job_timeout_minutes = 45
 max_attempts = 2
 # Extra flags passed through to `claude -p`.
 extra_args = []
@@ -42,6 +44,7 @@ class Config:
     weekly_max_utilization: float = 80.0
     model: str = "sonnet"
     job_timeout_minutes: int = 15
+    repo_job_timeout_minutes: int = 45
     max_attempts: int = 2
     extra_args: list[str] = field(default_factory=list)
 
@@ -71,6 +74,7 @@ def load() -> Config:
     run = data.get("run", {})
     cfg.model = run.get("model", cfg.model)
     cfg.job_timeout_minutes = int(run.get("job_timeout_minutes", cfg.job_timeout_minutes))
+    cfg.repo_job_timeout_minutes = int(run.get("repo_job_timeout_minutes", cfg.repo_job_timeout_minutes))
     cfg.max_attempts = int(run.get("max_attempts", cfg.max_attempts))
     cfg.extra_args = list(run.get("extra_args", []))
     return cfg
