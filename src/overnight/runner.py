@@ -128,22 +128,29 @@ def claude_path() -> str | None:
     return None
 
 
-def _invoke_claude(cmd: list[str], cwd, timeout_minutes: int) -> tuple[str, str | None]:
-    """Run claude and return (result_text, error). error is None on success."""
+def _invoke_claude(cmd: list[str], cwd, timeout_minutes: int) -> tuple[str, str | None, str | None]:
+    """Run claude and return (result_text, error, session_id).
+    error is None on success; session_id is kept even on failure so the
+    session can be resumed interactively."""
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True,
             timeout=timeout_minutes * 60, cwd=cwd,
         )
     except subprocess.TimeoutExpired:
-        return "", f"timed out after {timeout_minutes}m"
+        return "", f"timed out after {timeout_minutes}m", None
     except FileNotFoundError:
-        return "", "`claude` CLI not found on PATH"
+        return "", "`claude` CLI not found on PATH", None
     output = proc.stdout.strip()
+    session_id = None
+    try:
+        session_id = json.loads(output).get("session_id")
+    except json.JSONDecodeError:
+        pass
     result_text, is_error = _parse_claude_output(output, proc)
     if is_error:
-        return result_text, result_text or proc.stderr.strip() or f"claude exited {proc.returncode}"
-    return result_text, None
+        return result_text, result_text or proc.stderr.strip() or f"claude exited {proc.returncode}", session_id
+    return result_text, None, session_id
 
 
 def run_job(job: store.Job, cfg: Config) -> store.Job:
@@ -162,7 +169,9 @@ def run_job(job: store.Job, cfg: Config) -> store.Job:
         "--allowedTools", "WebSearch,WebFetch",
         *cfg.extra_args,
     ]
-    result_text, error = _invoke_claude(cmd, paths.scratch_dir(), cfg.job_timeout_minutes)
+    result_text, error, session_id = _invoke_claude(cmd, paths.scratch_dir(), cfg.job_timeout_minutes)
+    if session_id:
+        job.extra["session_id"] = session_id
     if error:
         if _is_limit_error(error):
             # Requeue: the batch should stop, and this job runs next window.
@@ -202,7 +211,9 @@ def _run_repo_job(job: store.Job, cfg: Config, claude: str) -> store.Job:
             "--permission-mode", "acceptEdits",
             *cfg.extra_args,
         ]
-        result_text, error = _invoke_claude(cmd, worktree, cfg.repo_job_timeout_minutes)
+        result_text, error, session_id = _invoke_claude(cmd, worktree, cfg.repo_job_timeout_minutes)
+        if session_id:
+            job.extra["session_id"] = session_id
 
         if error and _is_limit_error(error):
             return store.mark(job, store.PENDING, error=f"hit limit: {error[:200]}")
@@ -226,9 +237,10 @@ def _run_repo_job(job: store.Job, cfg: Config, claude: str) -> store.Job:
         )
         result_path = _write_result(job, body)
         status = store.FAILED if error else store.DONE
+        job.extra.update({"branch": branch, "repo": repo})
         return store.mark(job, status, result_path=str(result_path),
                           error=error[:500] if error else None,
-                          extra={"branch": branch, "repo": repo})
+                          extra=job.extra)
     finally:
         _git(repo, "worktree", "remove", "--force", str(worktree))
         # If nothing was committed the branch is pointless; drop it quietly.
@@ -267,13 +279,36 @@ def _update_index(batch: list[store.Job]) -> None:
     for job in batch:
         if job.status == store.DONE and job.result_path:
             rel = os.path.relpath(job.result_path, paths.results_dir())
-            lines.append(f"- ✅ [{job.prompt[:80]}]({rel})")
+            lines.append(f"- ✅ [{job.prompt[:80]}]({rel}) · resume `{job.id[-6:]}`")
         elif job.status == store.PENDING:
             lines.append(f"- ⏸️ requeued (hit limit): {job.prompt[:80]}")
         else:
             lines.append(f"- ❌ {job.prompt[:80]} — {job.error or 'failed'}")
     existing = index.read_text() if index.exists() else "# Overnight results\n"
     index.write_text(existing + "\n".join(lines) + "\n")
+
+
+def resume_target(job: store.Job) -> tuple[str, str]:
+    """Where and what to resume for a finished job: returns (cwd, session_id).
+    Raises ValueError with a user-facing message when resuming isn't possible."""
+    session_id = job.extra.get("session_id")
+    if not session_id:
+        raise ValueError("no session recorded for this job (ran before v0.4, or claude produced no output)")
+    if not job.repo:
+        return str(paths.scratch_dir()), session_id
+
+    repo = job.extra.get("repo", job.repo)
+    branch = job.extra.get("branch")
+    worktree = paths.base_dir() / "worktrees" / job.id
+    if not worktree.exists():
+        if not branch:
+            raise ValueError("no branch recorded for this repo job")
+        # Recreate the worktree at its original path so the claude session's
+        # project directory matches.
+        added = _git(repo, "worktree", "add", str(worktree), branch)
+        if added.returncode != 0:
+            raise ValueError(f"could not recreate worktree: {added.stderr.strip()[:200]}")
+    return str(worktree), session_id
 
 
 def run_batch(cfg: Config, force: bool = False, now: datetime | None = None) -> str:

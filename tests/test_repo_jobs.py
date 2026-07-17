@@ -24,12 +24,12 @@ def repo(tmp_path):
     return path
 
 
-def fake_invoke(edit=None, error=None):
+def fake_invoke(edit=None, error=None, session_id="sess-123"):
     """Mock _invoke_claude; optionally writes a file into the worktree cwd."""
     def invoke(cmd, cwd, timeout_minutes):
         if edit:
             (cwd / edit).write_text("made overnight\n")
-        return ("did the thing", error)
+        return ("did the thing", error, session_id)
     return invoke
 
 
@@ -107,6 +107,42 @@ def test_trust_roundtrip(tmp_path):
     assert trust.is_trusted(repo)
     assert trust.untrust(repo)
     assert not trust.is_trusted(repo)
+
+
+def test_session_recorded_and_resume_recreates_worktree(repo, monkeypatch):
+    trust.trust(str(repo))
+    monkeypatch.setattr(runner, "_invoke_claude", fake_invoke(edit="feature.py"))
+    job = runner.run_job(store.add("add feature", repo=str(repo)), Config())
+    assert job.extra["session_id"] == "sess-123"
+
+    cwd, session_id = runner.resume_target(job)
+    assert session_id == "sess-123"
+    assert cwd.endswith(job.id)
+    # the worktree was deleted after the run and recreated by resume_target
+    files = subprocess.run(["git", "ls-files"], cwd=cwd,
+                           capture_output=True, text=True).stdout
+    assert "feature.py" in files
+    subprocess.run(["git", "worktree", "remove", "--force", cwd], cwd=repo)
+
+
+def test_resume_target_research_job_uses_scratch(monkeypatch):
+    job = store.add("q")
+    job.extra["session_id"] = "sess-9"
+    cwd, sid = runner.resume_target(job)
+    assert sid == "sess-9"
+    assert "scratch" in cwd
+
+
+def test_resume_target_without_session_raises():
+    job = store.add("q")
+    with pytest.raises(ValueError):
+        runner.resume_target(job)
+
+
+def test_find_by_fragment():
+    job = store.add("some question")
+    assert store.find(job.id[-6:]).id == job.id
+    assert store.find("definitely-not-a-job") is None
 
 
 def test_first_flag_orders_queue():

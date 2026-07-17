@@ -66,6 +66,15 @@ def get(job_id: str) -> Job | None:
     return Job(**json.loads(path.read_text()))
 
 
+def find(ref: str) -> Job | None:
+    """Look up a job by full id or any unambiguous fragment of it."""
+    exact = get(ref)
+    if exact:
+        return exact
+    matches = [j for j in list_jobs() if ref in j.id]
+    return matches[0] if len(matches) == 1 else None
+
+
 def remove(job_id: str) -> bool:
     path = _job_path(job_id)
     if path.exists():

@@ -1,6 +1,7 @@
 """The `overnight` command."""
 
 import argparse
+import os
 import sys
 from datetime import datetime
 
@@ -65,18 +66,46 @@ def cmd_untrust(args) -> int:
 
 def cmd_results(args) -> int:
     if args.id:
-        job = store.get(args.id)
+        job = store.find(args.id)
         if not job or not job.result_path:
             print(f"No result for {args.id}")
             return 1
         print(open(job.result_path).read())
+        if job.extra.get("session_id"):
+            print(f"\n→ continue this conversation: overnight resume {job.id[-6:]}")
         return 0
     index = paths.results_dir() / "index.md"
     if not index.exists():
         print("No results yet.")
         return 0
     print(index.read_text())
+    done = store.list_jobs(store.DONE)
+    if done:
+        print("Read one report: overnight results <id> · pick up where it left off: overnight resume <id>")
+        for job in done[-5:]:
+            print(f"  {job.id[-6:]}  {job.prompt[:70]}")
     return 0
+
+
+def cmd_resume(args) -> int:
+    job = store.find(args.id)
+    if not job:
+        print(f"No job matching '{args.id}'. Try: overnight list")
+        return 1
+    try:
+        cwd, session_id = runner.resume_target(job)
+    except ValueError as e:
+        print(f"Can't resume: {e}")
+        return 1
+    claude = runner.claude_path()
+    if not claude:
+        print("`claude` CLI not found.")
+        return 1
+    print(f"Resuming overnight session for: {job.prompt[:70]}")
+    if job.repo:
+        print(f"(worktree: {cwd} — branch {job.extra.get('branch')})")
+    os.chdir(cwd)
+    os.execv(claude, [claude, "--resume", session_id])
 
 
 def cmd_remove(args) -> int:
@@ -229,6 +258,10 @@ def main(argv=None) -> int:
     p = sub.add_parser("results", help="print the results digest, or one job's report")
     p.add_argument("id", nargs="?")
     p.set_defaults(func=cmd_results)
+
+    p = sub.add_parser("resume", help="open an interactive claude session where an overnight job left off")
+    p.add_argument("id", help="job id or any unambiguous fragment of it")
+    p.set_defaults(func=cmd_resume)
 
     p = sub.add_parser("remove", help="remove a job by id")
     p.add_argument("id")
