@@ -1,0 +1,29 @@
+name: Job idea / feature request
+description: A kind of overnight job you wish this ran, or a feature that would make mornings better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you queue overnight?
+      description: >
+        Describe the job or workflow — research patterns, coding tasks,
+        follow-up chains, delivery targets, other agents/backends, anything.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you handle this today?
+      description: Helps judge how much pain this actually removes.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Closest area
+      options:
+        - Research jobs
+        - Repo/coding jobs
+        - Scheduling & limits
+        - Results & digest UX
+        - resume / followup threads
+        - Other

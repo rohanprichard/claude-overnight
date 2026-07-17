@@ -138,6 +138,12 @@ rm -rf ~/.overnight            # queue, results, config
 - Digest delivery to Telegram/ntfy/email
 - Pluggable backends: the queue, scheduler, and threshold logic are agent-agnostic — only the `claude -p` invocation and the limits reader are Claude-specific. Codex (`codex exec`) and Cursor CLI backends are on the table if there's demand.
 
+## Related tools
+
+- [ccusage](https://github.com/ryoppippi/ccusage) — analyze your Claude Code token usage and costs from local JSONL
+- [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) — real-time usage monitor with predictions and warnings
+- [claude-auto-retry](https://github.com/cheapestinference/claude-auto-retry) — auto-resume an interrupted session when the limit lifts
+
 ## License
 
 MIT

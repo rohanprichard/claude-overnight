@@ -1,0 +1,40 @@
+name: Bug report
+description: Something broke — a job failed, the scheduler didn't fire, limits read wrong
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `overnight --version`
+      placeholder: 0.5.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS (launchd)
+        - Linux (systemd)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: dryrun
+    attributes:
+      label: Output of `overnight run --dry-run` and `overnight status`
+      description: These show the decision trace — they answer most questions.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant lines from ~/.overnight/logs/
+      description: runner.log and runner.err.log around the failure time
+      render: text

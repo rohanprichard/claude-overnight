@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & show-and-tell
+    url: https://github.com/rohanprichard/claude-overnight/discussions
+    about: What do you queue overnight? Share workflows and ask questions here.
