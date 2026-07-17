@@ -29,6 +29,8 @@ class Job:
     repo: str | None = None
     model: str | None = None
     priority: int = 0
+    not_before: str | None = None  # ISO date; job won't run until this day
+    parent: str | None = None      # job this one follows up on
     extra: dict = field(default_factory=dict)
 
 
@@ -51,10 +53,22 @@ def save(job: Job) -> None:
 
 
 def add(prompt: str, repo: str | None = None, model: str | None = None,
-        first: bool = False) -> Job:
+        first: bool = False, not_before: str | None = None,
+        parent: Job | None = None) -> Job:
     job_id = datetime.now().strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(3)
     job = Job(id=job_id, prompt=prompt.strip(), created_at=_now_iso(),
-              repo=repo, model=model, priority=1 if first else 0)
+              repo=repo, model=model, priority=1 if first else 0,
+              not_before=not_before)
+    if parent:
+        job.parent = parent.id
+        job.repo = job.repo or parent.repo
+        job.model = job.model or parent.model
+        session = parent.extra.get("session_id")
+        if session:
+            job.extra["resume_session"] = session
+        for key in ("branch", "repo"):
+            if parent.extra.get(key):
+                job.extra[key] = parent.extra[key]
     save(job)
     return job
 

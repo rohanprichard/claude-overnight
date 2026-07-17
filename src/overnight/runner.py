@@ -162,8 +162,11 @@ def run_job(job: store.Job, cfg: Config) -> store.Job:
         return _run_repo_job(job, cfg, claude)
 
     store.mark(job, store.RUNNING)
+    resume = job.extra.get("resume_session")
+    prompt = job.prompt if resume else PROMPT_TEMPLATE.format(prompt=job.prompt)
     cmd = [
-        claude, "-p", PROMPT_TEMPLATE.format(prompt=job.prompt),
+        claude, "-p", prompt,
+        *(["--resume", resume] if resume else []),
         "--output-format", "json",
         "--model", job.model or cfg.model,
         "--allowedTools", "WebSearch,WebFetch",
@@ -195,17 +198,27 @@ def _run_repo_job(job: store.Job, cfg: Config, claude: str) -> store.Job:
             job, store.FAILED,
             error=f"repo not trusted; run: overnight trust {repo}")
 
-    branch = f"overnight/{store.slug(job.prompt, 30)}-{job.id[-6:]}"
+    resume = job.extra.get("resume_session")
+    if resume and job.extra.get("branch"):
+        # Follow-up: continue on the parent job's branch.
+        branch = job.extra["branch"]
+        branch_args = [branch]
+    else:
+        resume = None
+        branch = f"overnight/{store.slug(job.prompt, 30)}-{job.id[-6:]}"
+        branch_args = ["-b", branch]
     worktree = paths.base_dir() / "worktrees" / job.id
-    added = _git(repo, "worktree", "add", str(worktree), "-b", branch)
+    added = _git(repo, "worktree", "add", str(worktree), *branch_args)
     if added.returncode != 0:
         return store.mark(job, store.FAILED,
                           error=f"worktree add failed: {added.stderr.strip()[:300]}")
 
     store.mark(job, store.RUNNING)
     try:
+        prompt = job.prompt if resume else REPO_PROMPT_TEMPLATE.format(prompt=job.prompt)
         cmd = [
-            claude, "-p", REPO_PROMPT_TEMPLATE.format(prompt=job.prompt),
+            claude, "-p", prompt,
+            *(["--resume", resume] if resume else []),
             "--output-format", "json",
             "--model", job.model or cfg.model,
             "--permission-mode", "acceptEdits",
@@ -288,6 +301,10 @@ def _update_index(batch: list[store.Job]) -> None:
     index.write_text(existing + "\n".join(lines) + "\n")
 
 
+def is_due(job: store.Job, now: datetime) -> bool:
+    return not job.not_before or job.not_before <= now.date().isoformat()
+
+
 def resume_target(job: store.Job) -> tuple[str, str]:
     """Where and what to resume for a finished job: returns (cwd, session_id).
     Raises ValueError with a user-facing message when resuming isn't possible."""
@@ -315,7 +332,8 @@ def run_batch(cfg: Config, force: bool = False, now: datetime | None = None) -> 
     """Entry point for the scheduler tick and `overnight run`."""
     fixed_clock = now is not None
     now = now or datetime.now()
-    pending = [j for j in store.list_jobs(store.PENDING) if j.attempts < cfg.max_attempts]
+    pending = [j for j in store.list_jobs(store.PENDING)
+               if j.attempts < cfg.max_attempts and is_due(j, now)]
     if not pending:
         return "queue empty"
     if not _acquire_lock():

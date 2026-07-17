@@ -13,7 +13,8 @@ def cmd_add(args) -> int:
     if not prompt:
         print("Nothing to queue. Usage: overnight add \"your question\"")
         return 1
-    job = store.add(prompt, repo=args.repo, model=args.model, first=args.first)
+    job = store.add(prompt, repo=args.repo, model=args.model, first=args.first,
+                    not_before=args.after)
     kind = "coding job" if args.repo else "question"
     print(f"Queued {kind} [{job.id}]: {prompt[:100]}")
     if args.repo and not trust.is_trusted(args.repo):
@@ -84,6 +85,27 @@ def cmd_results(args) -> int:
         print("Read one report: overnight results <id> · pick up where it left off: overnight resume <id>")
         for job in done[-5:]:
             print(f"  {job.id[-6:]}  {job.prompt[:70]}")
+    return 0
+
+
+def cmd_followup(args) -> int:
+    parent = store.find(args.id)
+    if not parent:
+        print(f"No job matching '{args.id}'. Try: overnight list")
+        return 1
+    if not parent.extra.get("session_id"):
+        print("That job has no saved session to follow up on (ran before v0.4?). "
+              "Queue a fresh question instead.")
+        return 1
+    prompt = " ".join(args.prompt).strip()
+    if not prompt:
+        print("Usage: overnight followup <id> \"go deeper on X\"")
+        return 1
+    job = store.add(prompt, first=args.first, not_before=args.after, parent=parent)
+    print(f"Queued follow-up [{job.id}] of [{parent.id[-6:]}]: {prompt[:80]}")
+    if job.extra.get("branch"):
+        print(f"It will continue on branch {job.extra['branch']}.")
+    print("It will resume that job's session in the next overnight window.")
     return 0
 
 
@@ -242,7 +264,15 @@ def main(argv=None) -> int:
     p.add_argument("--repo", help="run as a coding job in a worktree of this git repo (must be trusted)")
     p.add_argument("--model", help="model for this job (overrides config)")
     p.add_argument("--first", action="store_true", help="run before normal-priority jobs")
+    p.add_argument("--after", metavar="YYYY-MM-DD", help="don't run before this date")
     p.set_defaults(func=cmd_add)
+
+    p = sub.add_parser("followup", help="queue a continuation of a finished job's session")
+    p.add_argument("id", help="job id or fragment")
+    p.add_argument("prompt", nargs="+")
+    p.add_argument("--first", action="store_true")
+    p.add_argument("--after", metavar="YYYY-MM-DD")
+    p.set_defaults(func=cmd_followup)
 
     p = sub.add_parser("list", help="show the queue")
     p.set_defaults(func=cmd_list)

@@ -50,6 +50,7 @@ overnight list          # see the queue
 overnight status        # current 5h/weekly utilization + would-it-run-now
 overnight results       # read the digest (or one report: overnight results <id>)
 overnight resume <id>   # open an interactive claude session where the job left off
+overnight followup <id> "go deeper on X"   # queue a continuation for the next window
 overnight run --dry-run # explain exactly what would happen and why
 overnight run --force   # run the batch right now, ignoring window/limits
 overnight retry         # requeue failed jobs
@@ -80,7 +81,11 @@ The agent commits its work (WIP-prefixed if it got stuck), writes a `SUMMARY.md`
 
 Results land in `~/.overnight/results/<date>/`, one markdown report per question, with a rolling `index.md` digest. A notification fires when the batch finishes.
 
-**Every overnight job saves its Claude session.** `overnight resume <id>` (any unambiguous fragment of the id works) drops you into the conversation that produced the result — ask follow-ups, challenge conclusions, or redirect the work, with all of the overnight context already loaded. For coding jobs it recreates the worktree on the job's branch first, so "change the approach in this PR" just works.
+**Every overnight job saves its Claude session**, which enables overnight *threads* instead of one-shot answers:
+
+- `overnight resume <id>` (any unambiguous id fragment) drops you into the conversation that produced the result — ask follow-ups, challenge conclusions, redirect the work, with all the overnight context loaded. For coding jobs it recreates the worktree on the job's branch first, so "change the approach" picks up mid-stream.
+- `overnight followup <id> "now compare against Yjs specifically"` queues a *continuation* of that session for the next window. Read at breakfast, redirect, sleep, repeat. Follow-ups to coding jobs continue on the same branch.
+- `overnight add --after 2026-07-21 "..."` holds a job until a given date ("research this before Monday's meeting").
 
 ## Configure
 
@@ -129,8 +134,6 @@ rm -rf ~/.overnight            # queue, results, config
 
 ## Roadmap
 
-- Follow-up jobs: `overnight followup <id> "go deeper on X"` — queue a continuation of a saved session for the next window
-- `--after <date>` job scheduling hints ("research this before Monday")
 - "Quota saved this week" stats in `overnight status`
 - Digest delivery to Telegram/ntfy/email
 - Pluggable backends: the queue, scheduler, and threshold logic are agent-agnostic — only the `claude -p` invocation and the limits reader are Claude-specific. Codex (`codex exec`) and Cursor CLI backends are on the table if there's demand.
