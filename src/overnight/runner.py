@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import limits, notify, paths, store, trust
+from . import summary as summary_page
 from .config import Config, in_window
 
 PROMPT_TEMPLATE = """\
@@ -356,6 +357,8 @@ def run_batch(cfg: Config, force: bool = False, now: datetime | None = None) -> 
                 break
 
         _update_index(batch)
+        if cfg.open_browser_summary:
+            summary_page.open_in_browser(summary_page.write(batch))
         done = sum(1 for j in batch if j.status == store.DONE)
         failed = sum(1 for j in batch if j.status == store.FAILED)
         left = len(store.list_jobs(store.PENDING))

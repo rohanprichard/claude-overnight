@@ -50,6 +50,7 @@ overnight list          # see the queue
 overnight status        # current 5h/weekly utilization + would-it-run-now
 overnight results       # read the digest (or one report: overnight results <id>)
 overnight resume <id>   # open an interactive claude session where the job left off
+overnight open          # reopen the last batch summary in your browser
 overnight followup <id> "go deeper on X"   # queue a continuation for the next window
 overnight run --dry-run # explain exactly what would happen and why
 overnight run --force   # run the batch right now, ignoring window/limits
@@ -79,7 +80,7 @@ The agent commits its work (WIP-prefixed if it got stuck), writes a `SUMMARY.md`
 
 **Safety model:** coding jobs run with `acceptEdits` (they need to edit files and run your tests), so they only run against repos you've explicitly blessed with `overnight trust`. The worktree fences file changes, but a job can execute shell commands — trust repos accordingly. Research jobs remain locked to web-search tools.
 
-Results land in `~/.overnight/results/<date>/`, one markdown report per question, with a rolling `index.md` digest. A notification fires when the batch finishes.
+Results land in `~/.overnight/results/<date>/`, one markdown report per question, with a rolling `index.md` digest. A notification fires when the batch finishes, and a summary page opens in your browser — status, resume command, and a link to each report — so the morning workflow starts with one glance instead of a terminal (`open_browser_summary = false` in config to disable).
 
 **Every overnight job saves its Claude session**, which enables overnight *threads* instead of one-shot answers:
 
@@ -106,6 +107,7 @@ model = "sonnet"
 job_timeout_minutes = 15       # research jobs
 repo_job_timeout_minutes = 45  # coding jobs get time to build and test
 max_attempts = 2
+open_browser_summary = true    # open an HTML batch summary in your browser
 ```
 
 ## How it works (there's no official API)

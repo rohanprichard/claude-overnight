@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import datetime
 
-from . import __version__, config, install, limits, paths, runner, store, trust
+from . import __version__, config, install, limits, paths, runner, store, summary, trust
 
 
 def cmd_add(args) -> int:
@@ -85,6 +85,16 @@ def cmd_results(args) -> int:
         print("Read one report: overnight results <id> · pick up where it left off: overnight resume <id>")
         for job in done[-5:]:
             print(f"  {job.id[-6:]}  {job.prompt[:70]}")
+    return 0
+
+
+def cmd_open(args) -> int:
+    path = paths.results_dir() / "latest.html"
+    if not path.exists():
+        print("No batch summary yet — it's written the first time a batch finishes.")
+        return 1
+    summary.open_in_browser(path)
+    print(f"Opened {path}")
     return 0
 
 
@@ -292,6 +302,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("resume", help="open an interactive claude session where an overnight job left off")
     p.add_argument("id", help="job id or any unambiguous fragment of it")
     p.set_defaults(func=cmd_resume)
+
+    p = sub.add_parser("open", help="reopen the last batch summary in your browser")
+    p.set_defaults(func=cmd_open)
 
     p = sub.add_parser("remove", help="remove a job by id")
     p.add_argument("id")

@@ -32,6 +32,8 @@ repo_job_timeout_minutes = 45
 max_attempts = 2
 # Extra flags passed through to `claude -p`.
 extra_args = []
+# Open an HTML summary of each finished batch in your browser.
+open_browser_summary = true
 """
 
 
@@ -47,6 +49,7 @@ class Config:
     repo_job_timeout_minutes: int = 45
     max_attempts: int = 2
     extra_args: list[str] = field(default_factory=list)
+    open_browser_summary: bool = True
 
 
 def _parse_time(value: str) -> time:
@@ -77,6 +80,7 @@ def load() -> Config:
     cfg.repo_job_timeout_minutes = int(run.get("repo_job_timeout_minutes", cfg.repo_job_timeout_minutes))
     cfg.max_attempts = int(run.get("max_attempts", cfg.max_attempts))
     cfg.extra_args = list(run.get("extra_args", []))
+    cfg.open_browser_summary = bool(run.get("open_browser_summary", cfg.open_browser_summary))
     return cfg
 
 
