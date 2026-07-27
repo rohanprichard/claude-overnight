@@ -126,6 +126,8 @@ Because the endpoint is **undocumented and could change**, everything degrades g
 
 Full details in [docs/how-it-works.md](docs/how-it-works.md).
 
+**Building something that needs these numbers?** [docs/oauth-usage-endpoint.md](docs/oauth-usage-endpoint.md) is a standalone reference for the endpoint — auth, both response shapes, and the gotchas (multiple per-model weekly entries, why failure must mean "unknown" rather than "zero"). Written so nobody else has to reverse-engineer it. Corrections welcome.
+
 ## Edge cases handled
 
 - **Machine asleep at 3am** — launchd (and systemd with `Persistent=true`) runs the missed tick on wake, so the batch runs when you open the lid, still before you start working.
