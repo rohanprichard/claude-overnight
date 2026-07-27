@@ -254,6 +254,8 @@ def cmd_install(args) -> int:
     names = ", ".join(f"/{p.stem}" for p in cmds)
     print(f"Installed slash commands: {names} in {cmds[0].parent}")
     print(f"Config: {paths.config_path()}")
+    print("\nQueue your first question:  overnight add \"...\"  (or /queue in Claude Code)")
+    print("Bugs, ideas, a star: https://github.com/rohanprichard/claude-overnight")
     return 0
 
 

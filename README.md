@@ -4,6 +4,10 @@
 
 ![demo](assets/demo.gif)
 
+**This is what you wake up to:**
+
+![the morning summary](assets/summary.png)
+
 Your Claude Code weekly limit quietly expires while you sleep — if you hit the 5-hour cap every day, you still leave weekly quota on the table every single night. `claude-overnight` puts that idle quota to work: queue questions with `/queue` during the day, and a scheduler runs them headlessly inside your configured night window, when your limits have reset. You wake up to a folder of markdown research reports and a morning digest.
 
 ```
@@ -83,6 +87,8 @@ The agent commits its work (WIP-prefixed if it got stuck), writes a `SUMMARY.md`
 Results land in `~/.overnight/results/<date>/`, one markdown report per question. Each batch also gets its own record in `~/.overnight/results/batches/`, and `index.md` is a table of contents over them — only the current batch is ever shown at once, so the digest stays readable however many nights you run.
 
 A notification fires when the batch finishes, and a summary page opens in your browser: counts, elapsed time, the resume command for each job, and every report rendered inline so you can read the night's work without leaving the page (`open_browser_summary = false` in config to disable). `overnight open` reopens it.
+
+![a report rendered inline](assets/summary-report.png)
 
 **Every overnight job saves its Claude session**, which enables overnight *threads* instead of one-shot answers:
 
