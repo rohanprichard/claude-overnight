@@ -1,6 +1,7 @@
-# claude-overnight
+# claude-overnight 
+![PyPI Version](https://img.shields.io/pypi/v/claude-overnight) [![PyPI Downloads](https://static.pepy.tech/personalized-badge/claude-overnight?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/claude-overnight) 
 
-**Queue research questions all day. Wake up to answers.**
+**Queue research questions all day. Wake up to answers.** 
 
 ![demo](assets/demo.gif)
 
