@@ -86,6 +86,17 @@ def _acquire_lock() -> bool:
         age = time_mod.time() - lock.stat().st_mtime
         if age < LOCK_STALE_SECONDS:
             return False
+        try:
+            pid = int(lock.read_text().strip())
+            if pid <= 0:
+                raise ValueError("invalid runner PID")
+            os.kill(pid, 0)
+        except (ValueError, ProcessLookupError):
+            pass
+        except PermissionError:
+            return False
+        else:
+            return False
         lock.unlink()
     try:
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -144,12 +155,7 @@ def _invoke_claude(cmd: list[str], cwd, timeout_minutes: int) -> tuple[str, str 
     except FileNotFoundError:
         return "", "`claude` CLI not found on PATH", None
     output = proc.stdout.strip()
-    session_id = None
-    try:
-        session_id = json.loads(output).get("session_id")
-    except json.JSONDecodeError:
-        pass
-    result_text, is_error = _parse_claude_output(output, proc)
+    result_text, is_error, session_id = _parse_claude_output(output, proc)
     if is_error:
         return result_text, result_text or proc.stderr.strip() or f"claude exited {proc.returncode}", session_id
     return result_text, None, session_id
@@ -269,13 +275,24 @@ def _run_repo_job(job: store.Job, cfg: Config, claude: str) -> store.Job:
             _git(repo, "branch", "-D", branch)
 
 
-def _parse_claude_output(output: str, proc) -> tuple[str, bool]:
+def _parse_claude_output(output: str, proc) -> tuple[str, bool, str | None]:
     try:
         data = json.loads(output)
-        return data.get("result", ""), bool(data.get("is_error")) or proc.returncode != 0
     except json.JSONDecodeError:
-        # Not JSON — treat raw stdout as the answer if exit was clean.
-        return output, proc.returncode != 0 or not output
+        # Use stdout as the answer if Claude did not return JSON.
+        return output, proc.returncode != 0 or not output, None
+
+    messages = data if isinstance(data, list) else [data]
+    results = [item for item in messages if isinstance(item, dict) and "result" in item]
+    session_id = next((item["session_id"] for item in reversed(messages)
+                       if isinstance(item, dict) and item.get("session_id")), None)
+    if not results:
+        return "Claude returned JSON without a result", True, session_id
+    result = results[-1]
+    text = result["result"]
+    if not isinstance(text, str):
+        return "Claude returned a result that is not text", True, session_id
+    return text, bool(result.get("is_error")) or proc.returncode != 0, session_id
 
 
 def _write_result(job: store.Job, text: str):

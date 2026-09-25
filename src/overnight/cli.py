@@ -160,14 +160,27 @@ def cmd_remove(args) -> int:
 
 
 def cmd_retry(args) -> int:
+    if args.stuck and not runner._acquire_lock():
+        print("A runner is active. Retry the jobs after it stops.")
+        return 1
+    try:
+        return _retry_jobs(args.stuck)
+    finally:
+        if args.stuck:
+            runner._release_lock()
+
+
+def _retry_jobs(stuck: bool) -> int:
     failed = store.list_jobs(store.FAILED)
-    if not failed:
-        print("No failed jobs.")
+    running = store.list_jobs(store.RUNNING) if stuck else []
+    if not failed and not running:
+        print("No failed or stuck jobs." if stuck else "No failed jobs.")
         return 0
-    for job in failed:
+    for job in failed + running:
         job.attempts = 0
         job.error = None
         job.status = store.PENDING
+        job.started_at = None
         store.save(job)
         print(f"Requeued [{job.id}]: {job.prompt[:80]}")
     return 0
@@ -188,7 +201,8 @@ def cmd_status(args) -> int:
     pending = store.list_jobs(store.PENDING)
     done = store.list_jobs(store.DONE)
     failed = store.list_jobs(store.FAILED)
-    print(f"Queue: {len(pending)} pending, {len(done)} done, {len(failed)} failed")
+    running = store.list_jobs(store.RUNNING)
+    print(f"Queue: {len(pending)} pending, {len(running)} running, {len(done)} done, {len(failed)} failed")
     decision = runner.should_start(cfg, usage, datetime.now())
     print(f"Would run now? {'yes' if decision.run else 'no'} — {decision.reason}")
     print(f"Results: {paths.results_dir() / 'index.md'}")
@@ -325,7 +339,8 @@ def main(argv=None) -> int:
     p.add_argument("id")
     p.set_defaults(func=cmd_remove)
 
-    p = sub.add_parser("retry", help="requeue all failed jobs")
+    p = sub.add_parser("retry", help="requeue failed jobs")
+    p.add_argument("--stuck", action="store_true", help="also requeue jobs left running after a crash")
     p.set_defaults(func=cmd_retry)
 
     p = sub.add_parser("status", help="show limits, queue and whether a batch would run")

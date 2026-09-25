@@ -60,6 +60,7 @@ overnight followup <id> "go deeper on X"   # queue a continuation for the next w
 overnight run --dry-run # explain exactly what would happen and why
 overnight run --force   # run the batch right now, ignoring window/limits
 overnight retry         # requeue failed jobs
+overnight retry --stuck # also requeue jobs left running after a crash
 ```
 
 Per-job flags: `--model opus` to override the model, `--first` to jump the queue.
