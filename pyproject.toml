@@ -1,11 +1,11 @@
 [project]
 name = "claude-overnight"
-version = "0.7.1"
+version = "0.7.2"
 description = "Queue research questions all day. Wake up to answers. Puts your idle Claude Code quota to work while you sleep."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Rohan Richard" }]
+authors = [{ name = "Rohan Richard", email = "rohanrichard.work@gmail.com" }]
 keywords = ["claude", "claude-code", "queue", "rate-limits", "automation"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -21,7 +21,8 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/rohanprichard/claude-overnight"
+Homepage = "https://claude-overnight.rohanprichard.com"
+Repository = "https://github.com/rohanprichard/claude-overnight"
 Issues = "https://github.com/rohanprichard/claude-overnight/issues"
 
 [project.scripts]
